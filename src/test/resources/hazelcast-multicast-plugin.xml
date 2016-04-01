@@ -30,9 +30,6 @@
             <aws enabled="false"/>
             <discovery-strategies>
                 <discovery-strategy enabled="true" class="com.hazelcast.multicast.MulticastDiscoveryStrategy">
-                    <properties>
-                        <property name=""
-                    </properties>
                 </discovery-strategy>
             </discovery-strategies>
         </join>
