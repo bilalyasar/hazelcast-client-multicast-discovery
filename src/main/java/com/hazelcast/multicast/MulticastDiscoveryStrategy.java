@@ -1,12 +1,11 @@
 package com.hazelcast.multicast;
 
+import com.hazelcast.config.properties.PropertyDefinition;
 import com.hazelcast.nio.Address;
-import com.hazelcast.nio.serialization.ByteArraySerializer;
 import com.hazelcast.spi.discovery.DiscoveryNode;
 import com.hazelcast.spi.discovery.DiscoveryStrategy;
 import com.hazelcast.spi.discovery.SimpleDiscoveryNode;
 
-import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.UnknownHostException;
@@ -16,29 +15,37 @@ import java.util.Map;
 
 public class MulticastDiscoveryStrategy implements DiscoveryStrategy {
 
+    private DiscoveryNode discoveryNode;
     private MulticastSocket multicastSocket;
-    private DatagramPacket datagramPacketSend;
-    private DatagramPacket datagramPacketReceive;
-    private ByteArraySerializer byteArraySerializer;
-    private static final int THREAD_CLOSE_TIMEOUT = 5;
+    Thread t;
+    private Map<String, Comparable> properties;
     private static final int DATA_OUTPUT_BUFFER_SIZE = 1024;
-    
+    boolean isClient;
+
     private MulticastDiscoveryReceiver multicastDiscoveryReceiver;
     private MulticastDiscoverySender multicastDiscoverySender;
 
     public MulticastDiscoveryStrategy(DiscoveryNode discoveryNode, Map<String, Comparable> properties) {
+        this.discoveryNode = discoveryNode;
+        this.properties = properties;
+
+    }
+
+    private void initializeMulticastSocket() {
         try {
-            multicastSocket = new MulticastSocket(54327);
+            int port = getOrDefault(MulticastProperties.PORT, 54327);
+            String group = getOrDefault(MulticastProperties.GROUP, "224.2.2.3");
+            multicastSocket = new MulticastSocket(port);
             multicastSocket.setReuseAddress(true);
             multicastSocket.setTimeToLive(255);
-            multicastSocket.setReceiveBufferSize(64 * 1024);
-            multicastSocket.setSendBufferSize(64 * 1024);
-            multicastSocket.setSoTimeout(1000);
-            multicastSocket.joinGroup(InetAddress.getByName("224.2.2.3"));
+            multicastSocket.setReceiveBufferSize(64 * DATA_OUTPUT_BUFFER_SIZE);
+            multicastSocket.setSendBufferSize(64 * DATA_OUTPUT_BUFFER_SIZE);
+            multicastSocket.setSoTimeout(3000);
+            multicastSocket.joinGroup(InetAddress.getByName(group));
             multicastDiscoverySender = new MulticastDiscoverySender(discoveryNode, multicastSocket);
             multicastDiscoveryReceiver = new MulticastDiscoveryReceiver(multicastSocket);
             if (discoveryNode != null) {
-                new Thread(multicastDiscoverySender).start();
+                isClient = false;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -49,21 +56,19 @@ public class MulticastDiscoveryStrategy implements DiscoveryStrategy {
 
     @Override
     public void start() {
-        try {
-            datagramPacketSend = new DatagramPacket(new byte[0], 0, InetAddress
-                    .getByName("224.2.2.3"), 54327);
-        } catch (Exception e) {
-            e.printStackTrace();
+        initializeMulticastSocket();
+        if (!isClient) {
+            t = new Thread(multicastDiscoverySender);
+            t.start();
         }
     }
 
     @Override
     public Iterable<DiscoveryNode> discoverNodes() {
-        System.out.println("discover nodes");
+        DiscoveryNode discoveryNode = null;
         MemberInfo memberInfo = multicastDiscoveryReceiver.receive();
         if (memberInfo == null) return null;
         ArrayList<DiscoveryNode> arrayList = new ArrayList<DiscoveryNode>();
-        DiscoveryNode discoveryNode = null;
         try {
             discoveryNode = new SimpleDiscoveryNode(new Address(memberInfo.getHost(), memberInfo.getPort()));
         } catch (UnknownHostException e) {
@@ -75,7 +80,26 @@ public class MulticastDiscoveryStrategy implements DiscoveryStrategy {
 
     @Override
     public void destroy() {
-
+        t.stop();
     }
+
+    private <T extends Comparable> T getOrNull(PropertyDefinition property) {
+        return getOrDefault(property, null);
+    }
+
+    private <T extends Comparable> T getOrDefault(PropertyDefinition property, T defaultValue) {
+
+        if (properties == null || property == null) {
+            return defaultValue;
+        }
+
+        Comparable value = properties.get(property.key());
+        if (value == null) {
+            return defaultValue;
+        }
+
+        return (T) value;
+    }
+
 
 }
