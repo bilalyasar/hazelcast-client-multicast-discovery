@@ -39,10 +39,7 @@ public class MemberToMemberDiscoveryTest extends HazelcastTestSupport {
         String xmlFileName = "hazelcast-multicast-plugin.xml";
         InputStream xmlResource = MulticastDiscoveryStrategy.class.getClassLoader().getResourceAsStream(xmlFileName);
         config = new XmlConfigBuilder(xmlResource).build();
-
-
     }
-
 
     @Test
     public void formClusterWithTwoMembersTest() throws InterruptedException {

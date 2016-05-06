@@ -16,6 +16,50 @@
 
 package com.hazelcast.multicast;
 
+import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.config.Config;
+import com.hazelcast.config.XmlConfigBuilder;
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.Member;
+import com.hazelcast.test.AssertTask;
+import com.hazelcast.test.HazelcastTestSupport;
+import org.junit.Before;
+import org.junit.Test;
 
-public class ClientToMemberDiscoveryTest {
+import java.io.InputStream;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+
+public class ClientToMemberDiscoveryTest extends HazelcastTestSupport{
+
+    Config serverConfig;
+    HazelcastInstance instance1;
+    HazelcastInstance instance2;
+
+    @Before
+    public void setup() {
+        String serverXmlFileName = "hazelcast-multicast-plugin.xml";
+
+        InputStream xmlResource = MulticastDiscoveryStrategy.class.getClassLoader().getResourceAsStream(serverXmlFileName);
+        serverConfig = new XmlConfigBuilder(xmlResource).build();
+    }
+
+    @Test
+    public void trial() {
+        instance1 = Hazelcast.newHazelcastInstance(serverConfig);
+        instance2 = Hazelcast.newHazelcastInstance(serverConfig);
+
+        final HazelcastInstance client = HazelcastClient.newHazelcastClient();
+
+        assertTrueEventually(new AssertTask() {
+            @Override
+            public void run() throws Exception {
+                Set<Member> members = client.getCluster().getMembers();
+                assertEquals(2, members.size());
+            }
+        });
+
+    }
 }
