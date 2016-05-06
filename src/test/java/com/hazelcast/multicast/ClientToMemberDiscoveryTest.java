@@ -16,27 +16,30 @@
 
 package com.hazelcast.multicast;
 
-import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.client.test.TestHazelcastFactory;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.XmlConfigBuilder;
-import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.Member;
 import com.hazelcast.test.AssertTask;
+import com.hazelcast.test.HazelcastSerialClassRunner;
 import com.hazelcast.test.HazelcastTestSupport;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import java.io.InputStream;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
-public class ClientToMemberDiscoveryTest extends HazelcastTestSupport{
+@RunWith(HazelcastSerialClassRunner.class)
+public class ClientToMemberDiscoveryTest extends HazelcastTestSupport {
 
     Config serverConfig;
     HazelcastInstance instance1;
     HazelcastInstance instance2;
+    public final TestHazelcastFactory factory = new TestHazelcastFactory();
 
     @Before
     public void setup() {
@@ -47,11 +50,11 @@ public class ClientToMemberDiscoveryTest extends HazelcastTestSupport{
     }
 
     @Test
-    public void trial() {
-        instance1 = Hazelcast.newHazelcastInstance(serverConfig);
-        instance2 = Hazelcast.newHazelcastInstance(serverConfig);
+    public void clientTest() {
+        instance1 = factory.newHazelcastInstance(serverConfig);
+        instance2 = factory.newHazelcastInstance(serverConfig);
 
-        final HazelcastInstance client = HazelcastClient.newHazelcastClient();
+        final HazelcastInstance client = factory.newHazelcastClient();
 
         assertTrueEventually(new AssertTask() {
             @Override
@@ -60,6 +63,6 @@ public class ClientToMemberDiscoveryTest extends HazelcastTestSupport{
                 assertEquals(2, members.size());
             }
         });
-
+        factory.shutdownAll();
     }
 }

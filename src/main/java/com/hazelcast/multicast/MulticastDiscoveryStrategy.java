@@ -21,11 +21,13 @@ import com.hazelcast.nio.Address;
 import com.hazelcast.spi.discovery.DiscoveryNode;
 import com.hazelcast.spi.discovery.DiscoveryStrategy;
 import com.hazelcast.spi.discovery.SimpleDiscoveryNode;
+import com.hazelcast.spi.partitiongroup.PartitionGroupStrategy;
 
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 
@@ -83,7 +85,7 @@ public class MulticastDiscoveryStrategy implements DiscoveryStrategy {
     public Iterable<DiscoveryNode> discoverNodes() {
         DiscoveryNode discoveryNode = null;
         MemberInfo memberInfo = multicastDiscoveryReceiver.receive();
-        
+
         if (memberInfo == null) return null;
         ArrayList<DiscoveryNode> arrayList = new ArrayList<DiscoveryNode>();
         try {
@@ -98,6 +100,16 @@ public class MulticastDiscoveryStrategy implements DiscoveryStrategy {
     @Override
     public void destroy() {
         t.stop();
+    }
+
+    @Override
+    public PartitionGroupStrategy getPartitionGroupStrategy() {
+        return null;
+    }
+
+    @Override
+    public Map<String, Object> discoverLocalMetadata() {
+        return new HashMap<String, Object>();
     }
 
     private <T extends Comparable> T getOrNull(PropertyDefinition property) {

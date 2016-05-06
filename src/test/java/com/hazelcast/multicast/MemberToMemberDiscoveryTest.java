@@ -46,8 +46,7 @@ public class MemberToMemberDiscoveryTest extends HazelcastTestSupport {
         TestHazelcastInstanceFactory factory = createHazelcastInstanceFactory(2);
         instances = factory.newInstances(config);
         assertClusterSizeEventually(2, instances[0]);
-        instances[0].shutdown();
-        instances[1].shutdown();
+        factory.shutdownAll();
     }
 
 }
